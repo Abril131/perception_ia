@@ -11,7 +11,7 @@ def plot_error(epochs_historia, ite):
     plt.legend()
 
     # Guardar la gráfica en un archivo
-    plt.savefig(f'grafica_error_norma_{ite}.png')  # Nombre del archivo incluye el número de iteraciones
+    plt.savefig(f'grafica_error_norma_{ite}.png')
 
 def plot_weights(epochs_historia, ite):
     plt.figure(figsize=(10, 5))
@@ -23,14 +23,13 @@ def plot_weights(epochs_historia, ite):
     plt.ylabel('Valor del Peso')
     plt.legend()
 
-    # Guardar la gráfica de pesos en un archivo
-    plt.savefig(f'grafica_pesos_{ite}.png')  # Nombre del archivo incluye el número de iteraciones
 
+    plt.savefig(f'grafica_pesos_{ite}.png')
 def save_csv(epochs_historia, ite):
     # Guardar la información en archivos CSV
     df_error_norma = pd.DataFrame({'Iteracion': [epoch.id for epoch in epochs_historia],
                                    'Error_Norma': [epoch.norma for epoch in epochs_historia]})
     df_weights = pd.DataFrame({'Iteracion': [epoch.id for epoch in epochs_historia],
                                'Weights': [epoch.weights for epoch in epochs_historia]})
-    df_error_norma.to_csv(f'error_norma_{ite}.csv', index=False)  # Nombre del archivo incluye el número de iteraciones
-    df_weights.to_csv(f'weights_{ite}.csv', index=False)  # Nombre del archivo incluye el número de iteraciones
+    df_error_norma.to_csv(f'error_norma_{ite}.csv', index=False)
+    df_weights.to_csv(f'weights_{ite}.csv', index=False)
