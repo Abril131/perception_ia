@@ -15,12 +15,18 @@ class Epoch:
 def calcular_resultado_activacion(fila_copia, pesos_decimales):
     return np.dot(fila_copia, pesos_decimales)
 
-def generar_pesos_w(n):
-    w_values = [1] + [round(val, 4) for val in np.random.rand(n - 1).tolist()]
-
+def generar_pesos_w(w):
+    #w_values = [1] + [round(val, 4) for val in np.random.uniform(-1, 1, w-1).tolist()]
+    w_values = [round(val, 4) for val in np.random.uniform(-1, 1, w)]
     return w_values
-def calcu_delta(eta, error, fila_copia):
-    return -eta * np.dot(error, fila_copia)
+
+def generar_w(w):
+    w_values = [1] + [round(val, 4) for val in np.random.uniform(-1, 1, w-1).tolist()]
+    #w_values = [round(val, 4) for val in np.random.uniform(-1, 1, w)]
+    return w_values
+
+def calcu_delta(eta,norma_e_y, fila_copia):
+    return eta * np.dot(norma_e_y, fila_copia)
 
 def cargar_archivo():
     archivo = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
@@ -35,18 +41,19 @@ def cargar_archivo():
         raise ValueError("No se seleccionó ningún archivo CSV.")
 
 def activate_function(u):
-    return 1 / (1 + np.exp(-u))
-    #if isinstance(u, (int, float, np.float64)):
-     #   return 1 if u >= 0 else 0
-   # elif isinstance(u, np.ndarray):
-    #    return np.array([1 if val >= 0 else 0 for val in u])
-   # else:
-    #    raise ValueError("Unsupported data type in activate_function")
+   # return 1 / (1 + np.exp(-u))
+    if isinstance(u, (int, float, np.float64)):
+       return 1 if u >= 0 else 0
+    elif isinstance(u, np.ndarray):
+        return np.array([1 if val >= 0 else 0 for val in u])
+    else:
+        raise ValueError("Unsupported data type in activate_function")
 
 
 def procesar_matriz(xn, y_values, ite, entry_eta):
     epochs_historia = []
     epochs_norma = []
+    b = 1
     # Lista para almacenar la norma del error en cada iteración
 
     for iteracion in range(ite):  # Bucle para iteraciones
@@ -57,15 +64,16 @@ def procesar_matriz(xn, y_values, ite, entry_eta):
         # Lista para almacenar la norma del error en cada iteración
         suma_u = 0
         er_e= 0
+
         for i, fila in enumerate(xn):
             numero_columnas_xn = len(xn[0])
             w = np.array([generar_pesos_w(numero_columnas_xn)])
-            W = np.array([generar_pesos_w(numero_columnas_xn)])
+            W = np.array([generar_w(numero_columnas_xn)])
 
             fila_copia = fila.copy()
             print("filaco", fila_copia)
 
-            u = calcular_resultado_activacion(fila_copia, w.flatten())
+            u = calcular_resultado_activacion(fila_copia, w.flatten()) + b
             print("wn", w.flatten())
             print("u=", u)
             print("w", w.flatten(), "*", "x", fila, "=", u)
@@ -81,7 +89,7 @@ def procesar_matriz(xn, y_values, ite, entry_eta):
             print("errorno", norma_e_y)
             er_e += norma_e_y
             norma_errores_historia.append(norma_e_y)
-            delta = calcu_delta(entry_eta, error, fila_copia)
+            delta = calcu_delta(entry_eta, norma_e_y, fila_copia)
             print("Delta:", delta)
 
             if len(delta) > 0 and len(w[1:]) > 0:
