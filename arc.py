@@ -1,108 +1,85 @@
+from tkinter import filedialog
+
 import numpy as np
 import pandas as pd
-from tkinter import filedialog
-import matplotlib.pyplot as plt
+
 
 class Epoch:
-    def __init__(self, id,norma, weights):
+    def __init__(self, id, norma, weights, allweights):
         self.id = id
         self.norma = norma
         self.weights = weights
+        self.allweights = allweights
 
     def __str__(self):
-        return f"Epoch: {self.id},Norma: {self.norma} Weights: {self.weights}"
+        return f"Epoch: {self.id}, Norma: {self.norma} Weights: {self.weights[1:]}, AllWeights: {self.allweights}"
 
-def calcular_resultado_activacion(fila_copia, pesos_decimales):
-    return np.dot(fila_copia, pesos_decimales)
+
+def calcular_u(filas, pesos_decimales):
+    print("filas:", filas)
+    print("pesos_decimales:", pesos_decimales)
+    return np.linalg.multi_dot([filas[:, 1:], np.transpose(pesos_decimales[1:])]) + pesos_decimales[0]
+
 
 def generar_pesos_w(w):
-    #w_values = [1] + [round(val, 4) for val in np.random.uniform(-1, 1, w-1).tolist()]
-    w_values = [round(val, 4) for val in np.random.uniform(-1, 1, w)]
+    w_values = [round(val, 4) for val in np.random.uniform(0, 1, w)]
     return w_values
 
-def generar_w(w):
-    w_values = [1] + [round(val, 4) for val in np.random.uniform(-1, 1, w-1).tolist()]
-    #w_values = [round(val, 4) for val in np.random.uniform(-1, 1, w)]
-    return w_values
 
-def calcu_delta(eta,norma_e_y, fila_copia):
-    return eta * np.dot(norma_e_y, fila_copia)
+def update_weights(w, delta_x):
+    return np.round(np.add(w, delta_x), 4)
+
+
+def calcu_delta(eta, error, fila_copia):
+    return eta * np.dot(np.transpose(error), fila_copia)
+
 
 def cargar_archivo():
     archivo = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
     if archivo:
-        df = pd.read_csv(archivo)
-        xn = df.iloc[:, :-1].values
+        df = pd.read_csv(archivo, header=None, delimiter=';')
+        xn = df.iloc[:, :-1]
         print("xn:", xn)
-        y_values = df.iloc[:, -1].values
+        y_values = df.iloc[:, -1]
         print("y:", y_values)
         return xn, y_values
     else:
-        raise ValueError("No se seleccionó ningún archivo CSV.")
+        print("No se seleccionó ningún archivo CSV.")
+        return None, None
+
 
 def activate_function(u):
-   # return 1 / (1 + np.exp(-u))
     if isinstance(u, (int, float, np.float64)):
-       return 1 if u >= 0 else 0
+        return 1 if u >= 0 else 0
     elif isinstance(u, np.ndarray):
         return np.array([1 if val >= 0 else 0 for val in u])
     else:
         raise ValueError("Unsupported data type in activate_function")
 
 
-def procesar_matriz(xn, y_values, ite, entry_eta):
+def add_bias(xn):
+    return np.insert(xn, 0, 1, axis=1)
+
+
+def procesar_matriz(xn, y_values, ite_value, eta_value, tol_value):
     epochs_historia = []
-    epochs_norma = []
-    b = 1
-    # Lista para almacenar la norma del error en cada iteración
+    xn = add_bias(xn)
+    b = xn[0]
+    numero_columnas_xn = len(xn[0])
 
-    for iteracion in range(ite):  # Bucle para iteraciones
+    w = np.array(generar_pesos_w(numero_columnas_xn))
+    for iteracion in range(ite_value):
         print(f"----------Iteración {iteracion + 1}")
-
         norma_errores_historia = []
-
-        # Lista para almacenar la norma del error en cada iteración
-        suma_u = 0
-        er_e= 0
-
-        for i, fila in enumerate(xn):
-            numero_columnas_xn = len(xn[0])
-            w = np.array([generar_pesos_w(numero_columnas_xn)])
-            W = np.array([generar_w(numero_columnas_xn)])
-
-            fila_copia = fila.copy()
-            print("filaco", fila_copia)
-
-            u = calcular_resultado_activacion(fila_copia, w.flatten()) + b
-            print("wn", w.flatten())
-            print("u=", u)
-            print("w", w.flatten(), "*", "x", fila, "=", u)
-
-            suma_u += u
-            # Calcular el error
-            error = y_values[i] - activate_function(u)
-            print(f"Error", error)
-
-
-
-            norma_e_y = np.linalg.norm(error)
-            print("errorno", norma_e_y)
-            er_e += norma_e_y
-            norma_errores_historia.append(norma_e_y)
-            delta = calcu_delta(entry_eta, norma_e_y, fila_copia)
-            print("Delta:", delta)
-
-            if len(delta) > 0 and len(w[1:]) > 0:
-                W[1:] = w[1:] + delta[1:]
-            print("WW", W)
-
-        # Almacena la norma del error para esta iteración
-        #epochs_norma.append(norma_errores_historia)
-
-        epoch = Epoch(id=iteracion + 1, norma=norma_errores_historia[-1], weights=W.flatten().tolist())
+        u = calcular_u(xn, w)
+        error = np.array(y_values - activate_function(u))
+        norma_error = np.linalg.norm(error)
+        norma_errores_historia.append(norma_error)
+        if norma_error > tol_value:
+            delta = calcu_delta(eta_value, error, xn)
+            w = update_weights(w, delta)
+        epoch = Epoch(id=iteracion + 1, norma=norma_errores_historia[-1] if norma_errores_historia else 0,
+                      weights=w.flatten().tolist(), allweights=w.flatten().tolist())
         epochs_historia.append(epoch)
-
-        #print("nerr", epochs_norma)
-        #print(epoch)
 
     return epochs_historia
